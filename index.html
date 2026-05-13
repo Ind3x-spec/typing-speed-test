@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TypeForge — Speed Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div class="glow-orb"></div>
+
+  <div class="wrapper">
+
+    <!-- HEADER -->
+    <header>
+      <div class="logo">Type<span>Forge</span></div>
+      <div class="tagline">Measure · Improve · Dominate</div>
+    </header>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-label">WPM</span>
+        <span class="stat-value highlight" id="wpm">0</span>
+        <span class="stat-unit">words/min</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Accuracy</span>
+        <span class="stat-value" id="accuracy">100</span>
+        <span class="stat-unit">percent</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Time</span>
+        <span class="stat-value" id="timer">60</span>
+        <span class="stat-unit">seconds left</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Errors</span>
+        <span class="stat-value" id="errors">0</span>
+        <span class="stat-unit">mistakes</span>
+      </div>
+    </div>
+
+    <!-- MODE SELECTOR -->
+    <div class="mode-row">
+      <span class="mode-label">Duration</span>
+      <button class="mode-btn" data-time="30">30s</button>
+      <button class="mode-btn active" data-time="60">60s</button>
+      <button class="mode-btn" data-time="120">120s</button>
+    </div>
+
+    <!-- TYPING AREA -->
+    <div class="typing-container" id="typingContainer">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="words-display" id="wordsDisplay"></div>
+
+      <input
+        type="text"
+        id="inputField"
+        class="hidden-input"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Click here or press any key to start..."
+      />
+
+      <div class="input-hint" id="inputHint">
+        <span class="blink">_</span> Click or press any key to begin
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <button class="ctrl-btn primary" id="resetBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Restart
+      </button>
+      <span class="shortcut">or press <kbd>Tab</kbd> + <kbd>Enter</kbd></span>
+    </div>
+
+    <!-- RESULTS OVERLAY -->
+    <div class="results-overlay hidden" id="resultsOverlay">
+      <div class="results-card">
+        <div class="results-header">
+          <span class="results-label">// RESULTS</span>
+          <div class="results-tag">Test Complete</div>
+        </div>
+
+        <div class="results-grid">
+          <div class="result-item big">
+            <span class="result-label">Final WPM</span>
+            <span class="result-value accent" id="finalWpm">—</span>
+          </div>
+          <div class="result-item big">
+            <span class="result-label">Accuracy</span>
+            <span class="result-value" id="finalAccuracy">—</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Correct Words</span>
+            <span class="result-value" id="finalCorrect">—</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Total Errors</span>
+            <span class="result-value error" id="finalErrors">—</span>
+          </div>
+        </div>
+
+        <div class="result-actions">
+          <button class="ctrl-btn primary" id="retryBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Try Again
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

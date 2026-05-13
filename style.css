@@ -1,0 +1,542 @@
+/* ===========================
+   TYPEFORGE — style.css
+   =========================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:        #0a0a0f;
+  --surface:   #111118;
+  --border:    #1e1e2e;
+  --accent:    #e8ff47;
+  --accent2:   #ff6b35;
+  --text:      #d4d4e8;
+  --muted:     #454560;
+  --correct:   #47ffaa;
+  --wrong:     #ff4757;
+  --font-mono: 'Space Mono', monospace;
+  --font-disp: 'Syne', sans-serif;
+}
+
+/* ── Base ─────────────────────────────────── */
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ── Glow Orb ─────────────────────────────── */
+.glow-orb {
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 255, 71, 0.05) 0%, transparent 70%);
+  top: -250px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ───────────────────────────────── */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem 5rem;
+}
+
+/* ── Header ───────────────────────────────── */
+header {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1.5rem 0 2.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2.5rem;
+}
+
+.logo {
+  font-family: var(--font-disp);
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+
+.logo span {
+  color: var(--accent);
+}
+
+.tagline {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ── Stats Bar ────────────────────────────── */
+.stats-bar {
+  width: 100%;
+  max-width: 860px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.stat {
+  background: var(--surface);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  transition: color 0.3s;
+  font-family: var(--font-disp);
+}
+
+.stat-value.highlight { color: var(--accent); }
+
+.stat-unit {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+/* ── Mode Buttons ─────────────────────────── */
+.mode-row {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.mode-label {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  margin-right: 0.4rem;
+}
+
+.mode-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.45rem 1.1rem;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.mode-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 700;
+}
+
+/* ── Typing Container ─────────────────────── */
+.typing-container {
+  width: 100%;
+  max-width: 860px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2.5rem 2.5rem 2rem;
+  position: relative;
+  cursor: text;
+  transition: border-color 0.2s;
+  margin-bottom: 0;
+}
+
+.typing-container:focus-within {
+  border-color: rgba(232, 255, 71, 0.3);
+}
+
+/* Corner decorations */
+.corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--accent);
+  border-style: solid;
+  opacity: 0.5;
+}
+.corner.tl { top: -1px; left: -1px;  border-width: 2px 0 0 2px; }
+.corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: -1px; left: -1px;  border-width: 0 0 2px 2px; }
+.corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* Words display */
+.words-display {
+  font-size: 1.35rem;
+  line-height: 2.4;
+  user-select: none;
+  min-height: 160px;
+  max-height: 160px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55em;
+  align-content: flex-start;
+}
+
+/* Each word */
+.words-display .word {
+  display: inline-flex;
+  position: relative;
+}
+
+/* Default: all letters slightly dark white (untyped) */
+.words-display .word span {
+  position: relative;
+  color: #5a5a72;          /* dim, slightly dark white */
+  transition: color 0.07s;
+}
+
+/* Active word — untyped letters are brighter */
+.words-display .word.active span {
+  color: #9090aa;
+}
+
+/* Typed correctly → bright white */
+.words-display .word span.correct {
+  color: #ffffff;
+}
+
+/* Typed wrong → red */
+.words-display .word span.wrong {
+  color: var(--wrong);
+}
+
+/* Finished word all correct → green */
+.words-display .word.done-correct span {
+  color: var(--correct);
+}
+
+/* Finished word with mistake → red */
+.words-display .word.done-wrong span.correct {
+  color: #ff8080;
+}
+.words-display .word.done-wrong span.wrong {
+  color: var(--wrong);
+}
+.words-display .word.done-wrong span:not(.correct):not(.wrong) {
+  color: var(--wrong);
+}
+
+/* Cursor — blinking bar before the next untyped letter */
+.words-display .word span.cursor::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 10%;
+  height: 80%;
+  width: 2px;
+  background: var(--accent);
+  animation: blink-cursor 0.85s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Hidden input — off-screen but fully functional */
+.hidden-input {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Input hint overlay */
+.input-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(2px);
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.input-hint.hidden { opacity: 0; }
+
+/* ── Progress Bar ─────────────────────────── */
+.progress-wrap {
+  width: 100%;
+  max-width: 860px;
+  height: 3px;
+  background: var(--border);
+  margin-bottom: 1.8rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 100%;
+  transition: width 1s linear;
+  transform-origin: left;
+}
+
+/* ── Controls ─────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.ctrl-btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ctrl-btn.primary:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+.ctrl-btn svg { flex-shrink: 0; }
+
+.shortcut {
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+
+/* ── Results Overlay ──────────────────────── */
+.results-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  animation: fade-in 0.3s ease;
+}
+
+.results-overlay.hidden {
+  display: none;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.results-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2.5rem 3rem;
+  width: 100%;
+  max-width: 520px;
+  position: relative;
+}
+
+.results-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.results-label {
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  font-style: italic;
+}
+
+.results-tag {
+  font-size: 0.6rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.result-item {
+  background: var(--bg);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.result-item.big .result-value {
+  font-size: 3rem;
+}
+
+.result-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.result-value {
+  font-family: var(--font-disp);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.result-value.accent { color: var(--accent); }
+.result-value.error  { color: var(--wrong); }
+
+.result-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Blink animation ──────────────────────── */
+.blink {
+  animation: blink-cursor 0.85s step-end infinite;
+}
+
+/* ── Shake on error ───────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+.shake {
+  animation: shake 0.25s ease;
+}
+
+/* ── Responsive ───────────────────────────── */
+@media (max-width: 640px) {
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .words-display {
+    font-size: 1.1rem;
+    line-height: 2.2;
+  }
+
+  .typing-container {
+    padding: 1.5rem 1.2rem;
+  }
+
+  header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .results-card {
+    padding: 1.8rem 1.5rem;
+    margin: 1rem;
+  }
+}
