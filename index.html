@@ -104,28 +104,45 @@
 
     <!-- RESULTS OVERLAY -->
     <div class="results-overlay hidden" id="resultsOverlay">
-      <div class="results-card">
+      <div class="results-card wide">
         <div class="results-header">
           <span class="results-label">// RESULTS</span>
           <div class="results-tag">Test Complete</div>
         </div>
 
-        <div class="results-grid">
-          <div class="result-item big">
-            <span class="result-label">Final WPM</span>
-            <span class="result-value accent" id="finalWpm">—</span>
+        <div class="results-main">
+          <div class="results-left">
+            <div class="r-label">wpm</div>
+            <div class="r-big accent" id="finalWpm">—</div>
+            <div class="r-label">acc</div>
+            <div class="r-big" id="finalAccuracy">—</div>
+            <div class="r-meta">
+              <div class="r-meta-label">test type</div>
+              <div class="r-meta-value" id="finalTestType">time 60<br>english</div>
+            </div>
           </div>
-          <div class="result-item big">
-            <span class="result-label">Accuracy</span>
-            <span class="result-value" id="finalAccuracy">—</span>
+
+          <div class="results-right">
+            <svg id="wpmChart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+
+        <div class="results-footer-grid">
+          <div class="result-item">
+            <span class="result-label">raw</span>
+            <span class="result-value" id="finalRaw">—</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Correct Words</span>
-            <span class="result-value" id="finalCorrect">—</span>
+            <span class="result-label">characters</span>
+            <span class="result-value" id="finalChars">—</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Total Errors</span>
-            <span class="result-value error" id="finalErrors">—</span>
+            <span class="result-label">consistency</span>
+            <span class="result-value" id="finalConsistency">—</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">time</span>
+            <span class="result-value" id="finalTime">—</span>
           </div>
         </div>
 
