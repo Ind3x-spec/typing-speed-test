@@ -51,6 +51,16 @@
       <button class="mode-btn" data-time="30">30s</button>
       <button class="mode-btn active" data-time="60">60s</button>
       <button class="mode-btn" data-time="120">120s</button>
+      <input type="number" id="customTimeInput" class="custom-time-input" placeholder="Custom sec" min="5" max="3600" />
+      <button class="mode-btn custom-btn" id="customTimeBtn">Set</button>
+    </div>
+
+    <!-- DIFFICULTY SELECTOR -->
+    <div class="mode-row">
+      <span class="mode-label">Difficulty</span>
+      <button class="diff-btn" data-difficulty="easy">Easy</button>
+      <button class="diff-btn active" data-difficulty="medium">Medium</button>
+      <button class="diff-btn" data-difficulty="hard">Hard</button>
     </div>
 
     <!-- TYPING AREA -->
@@ -74,7 +84,7 @@
       />
 
       <div class="input-hint" id="inputHint">
-        <span class="blink">_</span> Click or press any key to begin
+        <span class="blink">_</span> Click, type, press Enter after each word
       </div>
     </div>
 
@@ -89,7 +99,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         Restart
       </button>
-      <span class="shortcut">or press <kbd>Tab</kbd> + <kbd>Enter</kbd></span>
+      <span class="shortcut">press <kbd>Enter</kbd> after each word · <kbd>Tab</kbd> to restart</span>
     </div>
 
     <!-- RESULTS OVERLAY -->
