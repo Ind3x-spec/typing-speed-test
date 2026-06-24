@@ -1,36 +1,61 @@
 /* ===========================
    TYPEFORGE — script.js
-   Rebuilt with word-by-word approach
+   Enter-to-advance + custom timer + difficulty
    =========================== */
 
 'use strict';
 
-// ── Word bank ──────────────────────────────────────────────────────────────
-const WORD_BANK = [
-  "the", "be", "to", "of", "and", "a", "in", "that", "have", "it",
-  "for", "not", "on", "with", "he", "as", "you", "do", "at", "this",
-  "but", "his", "by", "from", "they", "we", "say", "her", "she", "or",
-  "an", "will", "my", "one", "all", "would", "there", "their", "what",
-  "so", "up", "out", "if", "about", "who", "get", "which", "go", "me",
-  "when", "make", "can", "like", "time", "no", "just", "him", "know",
-  "take", "people", "into", "year", "your", "good", "some", "could",
-  "them", "see", "other", "than", "then", "now", "look", "only", "come",
-  "its", "over", "think", "also", "back", "after", "use", "two", "how",
-  "our", "work", "first", "well", "way", "even", "new", "want", "because",
-  "any", "these", "give", "day", "most", "us", "great", "between", "need",
-  "large", "often", "hand", "high", "place", "hold", "turn", "move", "live",
-  "soon", "night", "real", "life", "few", "north", "open", "seem", "together",
-  "next", "white", "children", "begin", "got", "walk", "example", "ease",
-  "paper", "group", "always", "music", "those", "both", "mark", "book",
-  "letter", "until", "mile", "river", "car", "feet", "care", "second",
-  "enough", "plain", "girl", "usual", "young", "ready", "above", "ever",
-  "red", "list", "though", "feel", "talk", "bird", "body", "dog",
-  "family", "direct", "pose", "leave", "song", "measure", "door", "product",
-  "black", "short", "numeral", "class", "wind", "question", "happen", "complete",
-  "ship", "area", "half", "rock", "order", "fire", "south", "problem", "piece",
-  "told", "knew", "pass", "since", "top", "whole", "king", "point", "city",
-  "play", "small", "number", "off", "always", "move", "show", "try", "plant"
+// ── Word banks by difficulty ────────────────────────────────────────────────
+const WORD_BANK_EASY = [
+  "the", "be", "to", "of", "and", "a", "in", "it", "for", "on",
+  "he", "as", "you", "do", "at", "this", "his", "by", "she", "or",
+  "my", "one", "all", "what", "up", "out", "who", "get", "go", "me",
+  "can", "like", "time", "no", "him", "know", "year", "your", "good",
+  "see", "now", "look", "come", "back", "use", "two", "how", "way",
+  "new", "want", "day", "us", "hand", "high", "hold", "turn", "live",
+  "soon", "real", "life", "open", "next", "white", "got", "walk",
+  "book", "mile", "car", "feet", "care", "girl", "ever", "red", "list",
+  "feel", "talk", "bird", "body", "dog", "song", "door", "black",
+  "wind", "ship", "rock", "fire", "king", "city", "play", "off", "try"
 ];
+
+const WORD_BANK_MEDIUM = [
+  "that", "have", "not", "with", "from", "they", "we", "say", "her",
+  "will", "would", "there", "their", "about", "which", "when", "make",
+  "just", "take", "people", "into", "some", "could", "other", "than",
+  "then", "only", "over", "think", "also", "after", "our", "work",
+  "first", "well", "even", "because", "these", "give", "most", "great",
+  "between", "need", "large", "often", "place", "move", "night", "few",
+  "north", "seem", "together", "begin", "example", "ease", "paper",
+  "group", "always", "music", "those", "mark", "letter", "until",
+  "river", "second", "enough", "plain", "usual", "young", "ready",
+  "above", "though", "family", "direct", "leave", "measure", "product",
+  "short", "class", "question", "happen", "complete", "area", "half",
+  "order", "south", "problem", "piece", "told", "knew", "pass", "since",
+  "whole", "point", "small", "number", "always", "show", "plant"
+];
+
+const WORD_BANK_HARD = [
+  "between", "because", "example", "together", "children", "complete",
+  "question", "happen", "problem", "numeral", "measure", "product",
+  "direct", "usual", "though", "enough", "letter", "different",
+  "important", "available", "necessary", "experience", "particular",
+  "government", "development", "understand", "characteristic",
+  "organization", "relationship", "environment", "communication",
+  "responsibility", "opportunity", "significant", "consequently",
+  "approximately", "establishment", "circumstances", "professional",
+  "international", "fundamental", "demonstrate", "appropriate",
+  "implementation", "comprehensive", "infrastructure", "philosophical",
+  "extraordinary", "sophisticated", "controversial", "phenomenon"
+];
+
+const DIFFICULTY_BANKS = {
+  easy:   WORD_BANK_EASY,
+  medium: WORD_BANK_MEDIUM,
+  hard:   WORD_BANK_HARD
+};
+
+let currentDifficulty = 'medium';
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const wordsDisplay    = document.getElementById('wordsDisplay');
@@ -49,15 +74,18 @@ const finalAccuracy   = document.getElementById('finalAccuracy');
 const finalCorrect    = document.getElementById('finalCorrect');
 const finalErrors     = document.getElementById('finalErrors');
 const modeBtns        = document.querySelectorAll('.mode-btn');
+const diffBtns        = document.querySelectorAll('.diff-btn');
 const typingContainer = document.getElementById('typingContainer');
+const customTimeInput = document.getElementById('customTimeInput');
+const customTimeBtn   = document.getElementById('customTimeBtn');
 
 // ── State ──────────────────────────────────────────────────────────────────
-let words         = [];   // array of word strings
-let wordEls       = [];   // array of word <div> elements
-let currentWord   = 0;    // index of current word being typed
+let words         = [];
+let wordEls       = [];
+let currentWord   = 0;
 let correctWords  = 0;
 let totalErrors   = 0;
-let totalTyped    = 0;    // total characters typed
+let totalTyped    = 0;
 let timerDuration = 60;
 let timeLeft      = 60;
 let timerInterval = null;
@@ -66,20 +94,20 @@ let finished      = false;
 
 // ── Generate words ─────────────────────────────────────────────────────────
 function pickWords(count) {
+  const bank = DIFFICULTY_BANKS[currentDifficulty];
   const arr = [];
   for (let i = 0; i < count; i++) {
-    arr.push(WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]);
+    arr.push(bank[Math.floor(Math.random() * bank.length)]);
   }
   return arr;
 }
 
 // ── Build the words display ────────────────────────────────────────────────
-// Each word = a <div class="word"> containing <span>s for each letter
 function buildDisplay() {
   wordsDisplay.innerHTML = '';
   wordEls = [];
 
-  words.forEach((word, wi) => {
+  words.forEach((word) => {
     const wordDiv = document.createElement('div');
     wordDiv.classList.add('word');
 
@@ -93,7 +121,6 @@ function buildDisplay() {
     wordEls.push(wordDiv);
   });
 
-  // Mark the first word as active
   if (wordEls.length > 0) wordEls[0].classList.add('active');
 }
 
@@ -106,32 +133,28 @@ function renderCurrentWord(typed) {
   const target  = words[currentWord];
 
   letters.forEach((span, i) => {
-    span.className = ''; // reset
+    span.className = '';
     if (i < typed.length) {
       span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
     }
   });
 
-  // Show cursor after last typed character (or at start)
   const cursorPos = Math.min(typed.length, letters.length - 1);
   if (letters[cursorPos]) {
-    // Add cursor class to the next untyped letter
     if (typed.length < letters.length) {
       letters[typed.length].classList.add('cursor');
     } else {
-      // Typed past the word — show cursor on last letter
       letters[letters.length - 1].classList.add('cursor');
     }
   }
 }
 
-// ── Finalize a completed word (on space) ──────────────────────────────────
+// ── Finalize a completed word (on Enter) ───────────────────────────────────
 function finalizeWord(typed) {
   const wordDiv = wordEls[currentWord];
   const target  = words[currentWord];
   const letters = wordDiv.querySelectorAll('span');
 
-  // Compare typed vs target letter by letter
   let wordOk = typed === target;
 
   letters.forEach((span, i) => {
@@ -139,7 +162,6 @@ function finalizeWord(typed) {
     if (i < typed.length) {
       span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
     } else {
-      // Letters not typed — mark as wrong
       span.classList.add('wrong');
     }
   });
@@ -161,7 +183,6 @@ function scrollToActive() {
   if (!activeEl) return;
   const containerTop = wordsDisplay.offsetTop;
   const wordTop      = activeEl.offsetTop;
-  // If word has moved past first row, scroll the container
   wordsDisplay.scrollTop = wordTop - containerTop;
 }
 
@@ -226,6 +247,7 @@ function resetTest() {
   words = pickWords(150);
   buildDisplay();
   updateStats();
+  timerEl.textContent = timeLeft;
 
   inputField.value = '';
   inputField.disabled = false;
@@ -233,42 +255,47 @@ function resetTest() {
   resultsOverlay.classList.add('hidden');
 }
 
-// ── Input: listen to the real input value ─────────────────────────────────
-// The key insight: let the browser handle the input normally.
-// We read inputField.value on every 'input' event.
-// On space: finalize current word, advance, clear input.
-// On backspace at empty input: optionally go back (we keep it simple — no going back).
-
+// ── Input: typing letters (space no longer advances) ───────────────────────
 inputField.addEventListener('input', () => {
   if (finished) return;
 
   const typed = inputField.value;
 
-  // Start timer on first real character
   if (!started && typed.trim().length > 0) {
     started = true;
     inputHint.classList.add('hidden');
     startTimer();
   }
 
-  // Check if user pressed space (value ends with space)
-  if (typed.endsWith(' ')) {
-    const word = typed.trim(); // what they actually typed (without the space)
+  renderCurrentWord(typed);
+  updateStats();
+});
 
-    // Don't advance on empty space at start
-    if (word.length === 0) {
-      inputField.value = '';
-      return;
+// ── Advance word ONLY on Enter key ─────────────────────────────────────────
+inputField.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    resetTest();
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (finished) return;
+
+    const typed = inputField.value.trim();
+
+    if (!started && typed.length > 0) {
+      started = true;
+      inputHint.classList.add('hidden');
+      startTimer();
     }
 
-    // Finalize the current word
-    finalizeWord(word);
+    finalizeWord(typed.length === 0 ? '' : typed);
 
-    // Move to next word
     currentWord++;
 
     if (currentWord >= words.length) {
-      // Add more words dynamically
       const more = pickWords(50);
       words = words.concat(more);
       more.forEach((w) => {
@@ -284,29 +311,13 @@ inputField.addEventListener('input', () => {
       });
     }
 
-    // Activate next word
     if (wordEls[currentWord]) {
       wordEls[currentWord].classList.add('active');
       scrollToActive();
     }
 
-    // Clear the input for the next word
     inputField.value = '';
     updateStats();
-    return;
-  }
-
-  // Normal typing — re-render current word coloring
-  renderCurrentWord(typed);
-  updateStats();
-});
-
-// Prevent space from doing anything weird (like form submit or scroll)
-inputField.addEventListener('keydown', (e) => {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    resetTest();
-    return;
   }
 });
 
@@ -323,8 +334,7 @@ typingContainer.addEventListener('click', focusInput);
 document.addEventListener('keydown', (e) => {
   if (finished) return;
   if (e.key === 'Tab') return;
-  // Any keypress auto-focuses the input
-  if (document.activeElement !== inputField) {
+  if (document.activeElement !== inputField && document.activeElement !== customTimeInput) {
     inputField.focus();
   }
 });
@@ -333,12 +343,44 @@ inputField.addEventListener('blur', () => {
   if (!started && !finished) inputHint.classList.remove('hidden');
 });
 
-// ── Mode buttons ───────────────────────────────────────────────────────────
+// ── Mode buttons (preset durations) ────────────────────────────────────────
 modeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     modeBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     timerDuration = parseInt(btn.dataset.time, 10);
+    if (customTimeInput) customTimeInput.value = '';
+    resetTest();
+  });
+});
+
+// ── Custom timer input ──────────────────────────────────────────────────────
+if (customTimeBtn) {
+  customTimeBtn.addEventListener('click', () => {
+    const val = parseInt(customTimeInput.value, 10);
+    if (!val || val <= 0) return;
+    const clamped = Math.min(Math.max(val, 5), 3600);
+    timerDuration = clamped;
+    modeBtns.forEach(b => b.classList.remove('active'));
+    resetTest();
+  });
+}
+
+if (customTimeInput) {
+  customTimeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      customTimeBtn.click();
+    }
+  });
+}
+
+// ── Difficulty buttons ──────────────────────────────────────────────────────
+diffBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.difficulty;
     resetTest();
   });
 });
