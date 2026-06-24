@@ -255,6 +255,11 @@ header {
   position: relative;
   cursor: text;
   margin-bottom: 1.5rem;
+  transition: box-shadow 0.15s;
+}
+
+.typing-container.is-focused {
+  box-shadow: 8px 8px 0 var(--border), 0 0 0 3px var(--accent2);
 }
 
 /* Corner decorations removed — border itself is the brutalist frame */
