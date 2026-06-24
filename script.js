@@ -480,6 +480,11 @@ document.addEventListener('keydown', (e) => {
 
 inputField.addEventListener('blur', () => {
   if (!started && !finished) inputHint.classList.remove('hidden');
+  typingContainer.classList.remove('is-focused');
+});
+
+inputField.addEventListener('focus', () => {
+  typingContainer.classList.add('is-focused');
 });
 
 // ── Mode buttons (preset durations) ────────────────────────────────────────
@@ -530,3 +535,4 @@ retryBtn.addEventListener('click', resetTest);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 resetTest();
+inputField.focus();
