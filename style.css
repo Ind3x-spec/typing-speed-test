@@ -154,6 +154,7 @@ header {
   align-items: center;
   gap: 0.6rem;
   margin-bottom: 1.2rem;
+  flex-wrap: wrap;
 }
 
 .mode-label {
@@ -188,6 +189,57 @@ header {
 .mode-btn.active {
   background: var(--accent2);
   color: #fff;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+/* Custom timer input */
+.custom-time-input {
+  background: var(--surface);
+  border: var(--bw) solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 0.7rem;
+  width: 110px;
+  box-shadow: 4px 4px 0 var(--border);
+}
+
+.custom-time-input::placeholder {
+  color: var(--muted);
+}
+
+.custom-btn {
+  background: var(--blue);
+}
+
+/* Difficulty buttons */
+.diff-btn {
+  background: var(--surface);
+  border: var(--bw) solid var(--border);
+  color: var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 var(--border);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.diff-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--border);
+}
+
+.diff-btn[data-difficulty="easy"].active   { background: var(--correct); color: #fff; }
+.diff-btn[data-difficulty="medium"].active { background: var(--accent2); color: #fff; }
+.diff-btn[data-difficulty="hard"].active   { background: var(--wrong); color: #fff; }
+
+.diff-btn.active {
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0 var(--border);
 }
