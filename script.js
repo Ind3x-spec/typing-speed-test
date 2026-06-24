@@ -71,8 +71,11 @@ const retryBtn        = document.getElementById('retryBtn');
 const resultsOverlay  = document.getElementById('resultsOverlay');
 const finalWpm        = document.getElementById('finalWpm');
 const finalAccuracy   = document.getElementById('finalAccuracy');
-const finalCorrect    = document.getElementById('finalCorrect');
-const finalErrors     = document.getElementById('finalErrors');
+const finalRaw        = document.getElementById('finalRaw');
+const finalChars      = document.getElementById('finalChars');
+const finalConsistency = document.getElementById('finalConsistency');
+const finalTime       = document.getElementById('finalTime');
+const finalTestType   = document.getElementById('finalTestType');
 const modeBtns        = document.querySelectorAll('.mode-btn');
 const diffBtns        = document.querySelectorAll('.diff-btn');
 const typingContainer = document.getElementById('typingContainer');
@@ -91,6 +94,14 @@ let timeLeft      = 60;
 let timerInterval = null;
 let started       = false;
 let finished      = false;
+
+// stat tracking for results graph
+let wpmHistory      = [];   // [{sec, wpm, raw}]
+let correctChars    = 0;
+let incorrectChars  = 0;
+let extraChars      = 0;
+let missedChars      = 0;
+let totalCharsTyped = 0;    // for raw wpm
 
 // ── Generate words ─────────────────────────────────────────────────────────
 function pickWords(count) {
@@ -160,11 +171,21 @@ function finalizeWord(typed) {
   letters.forEach((span, i) => {
     span.className = '';
     if (i < typed.length) {
-      span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
+      const ok = typed[i] === target[i];
+      span.classList.add(ok ? 'correct' : 'wrong');
+      if (ok) correctChars++; else incorrectChars++;
     } else {
       span.classList.add('wrong');
+      missedChars++;
     }
   });
+
+  // extra characters typed beyond target length
+  if (typed.length > target.length) {
+    extraChars += (typed.length - target.length);
+  }
+
+  totalCharsTyped += typed.length + 1; // +1 for the space/enter between words
 
   if (wordOk) {
     correctWords++;
@@ -193,10 +214,27 @@ function calcWpm() {
   return Math.round(correctWords / elapsed);
 }
 
+function calcRawWpm() {
+  const elapsed = (timerDuration - timeLeft) / 60;
+  if (elapsed === 0) return 0;
+  return Math.round((totalCharsTyped / 5) / elapsed);
+}
+
 function calcAccuracy() {
-  const total = correctWords + totalErrors;
+  const total = correctChars + incorrectChars;
   if (total === 0) return 100;
-  return Math.round((correctWords / total) * 100);
+  return Math.round((correctChars / total) * 100);
+}
+
+function calcConsistency() {
+  if (wpmHistory.length < 2) return 100;
+  const vals = wpmHistory.map(h => h.wpm);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  if (mean === 0) return 100;
+  const variance = vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / vals.length;
+  const stdDev = Math.sqrt(variance);
+  const consistency = Math.max(0, Math.min(100, Math.round(100 - (stdDev / mean) * 100)));
+  return consistency;
 }
 
 function updateStats() {
@@ -207,11 +245,96 @@ function updateStats() {
   progressBar.style.width = (timeLeft / timerDuration * 100) + '%';
 }
 
-// ── Timer ──────────────────────────────────────────────────────────────────
+// ── Draw the WPM/raw line chart as SVG ─────────────────────────────────────
+function drawChart() {
+  const svg = document.getElementById('wpmChart');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  const W = 600, H = 220;
+  const padL = 36, padR = 10, padT = 14, padB = 24;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const data = wpmHistory.length > 0 ? wpmHistory : [{ sec: 1, wpm: 0, raw: 0 }];
+  const maxVal = Math.max(10, ...data.map(d => Math.max(d.wpm, d.raw))) * 1.15;
+  const n = data.length;
+
+  const xFor = (i) => padL + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+  const yFor = (v) => padT + plotH - (v / maxVal) * plotH;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const make = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+    return el;
+  };
+
+  // grid lines (horizontal)
+  const gridSteps = 4;
+  for (let i = 0; i <= gridSteps; i++) {
+    const v = (maxVal / gridSteps) * i;
+    const y = yFor(v);
+    svg.appendChild(make('line', {
+      x1: padL, x2: W - padR, y1: y, y2: y,
+      stroke: 'var(--border)', 'stroke-opacity': '0.15', 'stroke-width': '1'
+    }));
+    const label = make('text', {
+      x: padL - 6, y: y + 4, 'text-anchor': 'end',
+      'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)'
+    });
+    label.textContent = Math.round(v);
+    svg.appendChild(label);
+  }
+
+  // build path for a series
+  function pathFor(key) {
+    return data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(d[key])}`).join(' ');
+  }
+
+  // raw line (muted)
+  svg.appendChild(make('path', {
+    d: pathFor('raw'),
+    fill: 'none', stroke: 'var(--muted)', 'stroke-width': '2', opacity: '0.7'
+  }));
+
+  // wpm line (accent)
+  svg.appendChild(make('path', {
+    d: pathFor('wpm'),
+    fill: 'none', stroke: 'var(--accent2)', 'stroke-width': '3'
+  }));
+
+  // dots on wpm line
+  data.forEach((d, i) => {
+    svg.appendChild(make('circle', {
+      cx: xFor(i), cy: yFor(d.wpm), r: '3',
+      fill: 'var(--accent2)'
+    }));
+  });
+
+  // x-axis seconds labels (sparse)
+  const labelEvery = Math.max(1, Math.ceil(n / 10));
+  data.forEach((d, i) => {
+    if (i % labelEvery !== 0 && i !== n - 1) return;
+    const label = make('text', {
+      x: xFor(i), y: H - 6, 'text-anchor': 'middle',
+      'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)'
+    });
+    label.textContent = d.sec;
+    svg.appendChild(label);
+  });
+}
+
+
 function startTimer() {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateStats();
+    wpmHistory.push({
+      sec: timerDuration - timeLeft,
+      wpm: calcWpm(),
+      raw: calcRawWpm()
+    });
     if (timeLeft <= 0) endTest();
   }, 1000);
 }
@@ -221,10 +344,20 @@ function endTest() {
   finished = true;
   inputField.blur();
 
-  finalWpm.textContent      = calcWpm();
-  finalAccuracy.textContent = calcAccuracy() + '%';
-  finalCorrect.textContent  = correctWords;
-  finalErrors.textContent   = totalErrors;
+  const wpm = calcWpm();
+  const raw = calcRawWpm();
+  const acc = calcAccuracy();
+  const consistency = calcConsistency();
+
+  finalWpm.textContent      = wpm;
+  finalAccuracy.textContent = acc + '%';
+  finalRaw.textContent      = raw;
+  finalChars.textContent    = `${correctChars}/${incorrectChars}/${extraChars}/${missedChars}`;
+  finalConsistency.textContent = consistency + '%';
+  finalTime.textContent     = timerDuration + 's';
+  finalTestType.innerHTML   = `time ${timerDuration}<br>${currentDifficulty}`;
+
+  drawChart();
   resultsOverlay.classList.remove('hidden');
 }
 
@@ -239,6 +372,12 @@ function resetTest() {
   correctWords = 0;
   totalErrors  = 0;
   totalTyped   = 0;
+  wpmHistory      = [];
+  correctChars    = 0;
+  incorrectChars  = 0;
+  extraChars      = 0;
+  missedChars     = 0;
+  totalCharsTyped = 0;
 
   progressBar.style.transition = 'none';
   progressBar.style.width = '100%';
