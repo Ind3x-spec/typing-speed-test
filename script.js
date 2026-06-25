@@ -356,7 +356,10 @@ document.addEventListener('keydown', (e) => {
   if (finished) return;
   if (e.key === 'Tab') return;
   if (document.activeElement !== inputField && document.activeElement !== customTimeInput) {
+    // Enter (or any key) when not focused just starts/focuses — does not finalize a word
     inputField.focus();
+    inputHint.classList.add('hidden');
+    if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
   }
 });
 
