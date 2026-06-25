@@ -433,7 +433,7 @@ kbd {
   position: relative;
 }
 
-.results-card.wide { max-width: 760px; }
+.results-card.wide { max-width: 980px; }
 
 .results-card::before {
   content: '';
