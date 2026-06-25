@@ -51,6 +51,16 @@
       <button class="mode-btn" data-time="30">30s</button>
       <button class="mode-btn active" data-time="60">60s</button>
       <button class="mode-btn" data-time="120">120s</button>
+      <input type="number" id="customTimeInput" class="custom-time-input" placeholder="Custom sec" min="5" max="3600" />
+      <button class="mode-btn custom-btn" id="customTimeBtn">Set</button>
+    </div>
+
+    <!-- DIFFICULTY SELECTOR -->
+    <div class="mode-row">
+      <span class="mode-label">Difficulty</span>
+      <button class="diff-btn" data-difficulty="easy">Easy</button>
+      <button class="diff-btn active" data-difficulty="medium">Medium</button>
+      <button class="diff-btn" data-difficulty="hard">Hard</button>
     </div>
 
     <!-- TYPING AREA -->
@@ -74,7 +84,7 @@
       />
 
       <div class="input-hint" id="inputHint">
-        <span class="blink">_</span> Click or press any key to begin
+        <span class="blink">_</span> Click, type, press Enter or Space after each word
       </div>
     </div>
 
@@ -89,33 +99,50 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         Restart
       </button>
-      <span class="shortcut">or press <kbd>Tab</kbd> + <kbd>Enter</kbd></span>
+      <span class="shortcut">press <kbd>Enter</kbd> or <kbd>Space</kbd> after each word · <kbd>Tab</kbd> to restart</span>
     </div>
 
     <!-- RESULTS OVERLAY -->
     <div class="results-overlay hidden" id="resultsOverlay">
-      <div class="results-card">
+      <div class="results-card wide">
         <div class="results-header">
           <span class="results-label">// RESULTS</span>
           <div class="results-tag">Test Complete</div>
         </div>
 
-        <div class="results-grid">
-          <div class="result-item big">
-            <span class="result-label">Final WPM</span>
-            <span class="result-value accent" id="finalWpm">—</span>
+        <div class="results-main">
+          <div class="results-left">
+            <div class="r-label">wpm</div>
+            <div class="r-big accent" id="finalWpm">—</div>
+            <div class="r-label">acc</div>
+            <div class="r-big" id="finalAccuracy">—</div>
+            <div class="r-meta">
+              <div class="r-meta-label">test type</div>
+              <div class="r-meta-value" id="finalTestType">time 60<br>english</div>
+            </div>
           </div>
-          <div class="result-item big">
-            <span class="result-label">Accuracy</span>
-            <span class="result-value" id="finalAccuracy">—</span>
+
+          <div class="results-right">
+            <svg id="wpmChart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+
+        <div class="results-footer-grid">
+          <div class="result-item">
+            <span class="result-label">raw</span>
+            <span class="result-value" id="finalRaw">—</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Correct Words</span>
-            <span class="result-value" id="finalCorrect">—</span>
+            <span class="result-label">characters</span>
+            <span class="result-value" id="finalChars">—</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Total Errors</span>
-            <span class="result-value error" id="finalErrors">—</span>
+            <span class="result-label">consistency</span>
+            <span class="result-value" id="finalConsistency">—</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">time</span>
+            <span class="result-value" id="finalTime">—</span>
           </div>
         </div>
 
