@@ -8,7 +8,7 @@ const WORD_BANK_EASY = [
   "see", "now", "look", "come", "back", "use", "two", "how", "way",
   "new", "want", "day", "us", "hand", "high", "hold", "turn", "live",
   "soon", "real", "life", "open", "next", "white", "got", "walk",
-  "book", "mile", "car", "feet", "care", "girl", "ever", "red", "list",
+  "book", "mile", "car", "feet", "care", "girl", "ever", "red", "list", 
   "feel", "talk", "bird", "body", "dog", "song", "door", "black",
   "wind", "ship", "rock", "fire", "king", "city", "play", "off", "try"
 ];
