@@ -1,11 +1,5 @@
-/* ===========================
-   TYPEFORGE — script.js
-   Enter-to-advance + custom timer + difficulty
-   =========================== */
-
 'use strict';
 
-// ── Word banks by difficulty ────────────────────────────────────────────────
 const WORD_BANK_EASY = [
   "the", "be", "to", "of", "and", "a", "in", "it", "for", "on",
   "he", "as", "you", "do", "at", "this", "his", "by", "she", "or",
@@ -49,15 +43,9 @@ const WORD_BANK_HARD = [
   "extraordinary", "sophisticated", "controversial", "phenomenon"
 ];
 
-const DIFFICULTY_BANKS = {
-  easy:   WORD_BANK_EASY,
-  medium: WORD_BANK_MEDIUM,
-  hard:   WORD_BANK_HARD
-};
-
+const DIFFICULTY_BANKS = { easy: WORD_BANK_EASY, medium: WORD_BANK_MEDIUM, hard: WORD_BANK_HARD };
 let currentDifficulty = 'medium';
 
-// ── DOM refs ───────────────────────────────────────────────────────────────
 const wordsDisplay    = document.getElementById('wordsDisplay');
 const inputField      = document.getElementById('inputField');
 const inputHint       = document.getElementById('inputHint');
@@ -82,90 +70,54 @@ const typingContainer = document.getElementById('typingContainer');
 const customTimeInput = document.getElementById('customTimeInput');
 const customTimeBtn   = document.getElementById('customTimeBtn');
 
-// ── State ──────────────────────────────────────────────────────────────────
-let words         = [];
-let wordEls       = [];
-let currentWord   = 0;
-let correctWords  = 0;
-let totalErrors   = 0;
-let totalTyped    = 0;
-let timerDuration = 60;
-let timeLeft      = 60;
-let timerInterval = null;
-let started       = false;
-let finished      = false;
+let words = [], wordEls = [], currentWord = 0, correctWords = 0, totalErrors = 0, totalTyped = 0;
+let timerDuration = 60, timeLeft = 60, timerInterval = null, started = false, finished = false;
+let wpmHistory = [], correctChars = 0, incorrectChars = 0, extraChars = 0, missedChars = 0, totalCharsTyped = 0;
 
-// stat tracking for results graph
-let wpmHistory      = [];   // [{sec, wpm, raw}]
-let correctChars    = 0;
-let incorrectChars  = 0;
-let extraChars      = 0;
-let missedChars      = 0;
-let totalCharsTyped = 0;    // for raw wpm
-
-// ── Generate words ─────────────────────────────────────────────────────────
 function pickWords(count) {
   const bank = DIFFICULTY_BANKS[currentDifficulty];
   const arr = [];
-  for (let i = 0; i < count; i++) {
-    arr.push(bank[Math.floor(Math.random() * bank.length)]);
-  }
+  for (let i = 0; i < count; i++) arr.push(bank[Math.floor(Math.random() * bank.length)]);
   return arr;
 }
 
-// ── Build the words display ────────────────────────────────────────────────
 function buildDisplay() {
   wordsDisplay.innerHTML = '';
   wordEls = [];
-
   words.forEach((word) => {
     const wordDiv = document.createElement('div');
     wordDiv.classList.add('word');
-
     word.split('').forEach(ch => {
       const span = document.createElement('span');
       span.textContent = ch;
       wordDiv.appendChild(span);
     });
-
     wordsDisplay.appendChild(wordDiv);
     wordEls.push(wordDiv);
   });
-
   if (wordEls.length > 0) wordEls[0].classList.add('active');
 }
 
-// ── Render current word coloring based on typed input ─────────────────────
 function renderCurrentWord(typed) {
   const wordDiv = wordEls[currentWord];
   if (!wordDiv) return;
-
   const letters = wordDiv.querySelectorAll('span');
   const target  = words[currentWord];
-
   letters.forEach((span, i) => {
     span.className = '';
-    if (i < typed.length) {
-      span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
-    }
+    if (i < typed.length) span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
   });
-
   const cursorPos = Math.min(typed.length, letters.length - 1);
   if (letters[cursorPos]) {
-    if (typed.length < letters.length) {
-      letters[typed.length].classList.add('cursor');
-    } else {
-      letters[letters.length - 1].classList.add('cursor');
-    }
+    if (typed.length < letters.length) letters[typed.length].classList.add('cursor');
+    else letters[letters.length - 1].classList.add('cursor');
   }
 }
 
-// ── Finalize a completed word (on Enter) ───────────────────────────────────
 function finalizeWord(typed) {
   const wordDiv = wordEls[currentWord];
   const target  = words[currentWord];
   const letters = wordDiv.querySelectorAll('span');
-
   let wordOk = typed === target;
 
   letters.forEach((span, i) => {
@@ -180,25 +132,15 @@ function finalizeWord(typed) {
     }
   });
 
-  // extra characters typed beyond target length
-  if (typed.length > target.length) {
-    extraChars += (typed.length - target.length);
-  }
+  if (typed.length > target.length) extraChars += (typed.length - target.length);
+  totalCharsTyped += typed.length + 1;
 
-  totalCharsTyped += typed.length + 1; // +1 for the space/enter between words
-
-  if (wordOk) {
-    correctWords++;
-    wordDiv.classList.add('done-correct');
-  } else {
-    totalErrors++;
-    wordDiv.classList.add('done-wrong');
-  }
+  if (wordOk) { correctWords++; wordDiv.classList.add('done-correct'); }
+  else { totalErrors++; wordDiv.classList.add('done-wrong'); }
 
   wordDiv.classList.remove('active');
 }
 
-// ── Scroll display to keep active word visible ────────────────────────────
 function scrollToActive() {
   const activeEl = wordEls[currentWord];
   if (!activeEl) return;
@@ -207,7 +149,6 @@ function scrollToActive() {
   wordsDisplay.scrollTop = wordTop - containerTop;
 }
 
-// ── Stats ──────────────────────────────────────────────────────────────────
 function calcWpm() {
   const elapsed = (timerDuration - timeLeft) / 60;
   if (elapsed === 0) return 0;
@@ -233,8 +174,7 @@ function calcConsistency() {
   if (mean === 0) return 100;
   const variance = vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / vals.length;
   const stdDev = Math.sqrt(variance);
-  const consistency = Math.max(0, Math.min(100, Math.round(100 - (stdDev / mean) * 100)));
-  return consistency;
+  return Math.max(0, Math.min(100, Math.round(100 - (stdDev / mean) * 100)));
 }
 
 function updateStats() {
@@ -245,96 +185,51 @@ function updateStats() {
   progressBar.style.width = (timeLeft / timerDuration * 100) + '%';
 }
 
-// ── Draw the WPM/raw line chart as SVG ─────────────────────────────────────
 function drawChart() {
   const svg = document.getElementById('wpmChart');
   if (!svg) return;
   svg.innerHTML = '';
-
-  const W = 600, H = 220;
-  const padL = 36, padR = 10, padT = 14, padB = 24;
-  const plotW = W - padL - padR;
-  const plotH = H - padT - padB;
-
+  const W = 600, H = 220, padL = 36, padR = 10, padT = 14, padB = 24;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
   const data = wpmHistory.length > 0 ? wpmHistory : [{ sec: 1, wpm: 0, raw: 0 }];
   const maxVal = Math.max(10, ...data.map(d => Math.max(d.wpm, d.raw))) * 1.15;
   const n = data.length;
-
   const xFor = (i) => padL + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
   const yFor = (v) => padT + plotH - (v / maxVal) * plotH;
-
   const ns = 'http://www.w3.org/2000/svg';
   const make = (tag, attrs) => {
     const el = document.createElementNS(ns, tag);
     Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
     return el;
   };
-
-  // grid lines (horizontal)
   const gridSteps = 4;
   for (let i = 0; i <= gridSteps; i++) {
-    const v = (maxVal / gridSteps) * i;
-    const y = yFor(v);
-    svg.appendChild(make('line', {
-      x1: padL, x2: W - padR, y1: y, y2: y,
-      stroke: 'var(--border)', 'stroke-opacity': '0.15', 'stroke-width': '1'
-    }));
-    const label = make('text', {
-      x: padL - 6, y: y + 4, 'text-anchor': 'end',
-      'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)'
-    });
+    const v = (maxVal / gridSteps) * i, y = yFor(v);
+    svg.appendChild(make('line', { x1: padL, x2: W - padR, y1: y, y2: y, stroke: 'var(--border)', 'stroke-opacity': '0.15', 'stroke-width': '1' }));
+    const label = make('text', { x: padL - 6, y: y + 4, 'text-anchor': 'end', 'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)' });
     label.textContent = Math.round(v);
     svg.appendChild(label);
   }
-
-  // build path for a series
   function pathFor(key) {
     return data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(d[key])}`).join(' ');
   }
-
-  // raw line (muted)
-  svg.appendChild(make('path', {
-    d: pathFor('raw'),
-    fill: 'none', stroke: 'var(--muted)', 'stroke-width': '2', opacity: '0.7'
-  }));
-
-  // wpm line (accent)
-  svg.appendChild(make('path', {
-    d: pathFor('wpm'),
-    fill: 'none', stroke: 'var(--accent2)', 'stroke-width': '3'
-  }));
-
-  // dots on wpm line
-  data.forEach((d, i) => {
-    svg.appendChild(make('circle', {
-      cx: xFor(i), cy: yFor(d.wpm), r: '3',
-      fill: 'var(--accent2)'
-    }));
-  });
-
-  // x-axis seconds labels (sparse)
+  svg.appendChild(make('path', { d: pathFor('raw'), fill: 'none', stroke: 'var(--muted)', 'stroke-width': '2', opacity: '0.7' }));
+  svg.appendChild(make('path', { d: pathFor('wpm'), fill: 'none', stroke: 'var(--accent2)', 'stroke-width': '3' }));
+  data.forEach((d, i) => svg.appendChild(make('circle', { cx: xFor(i), cy: yFor(d.wpm), r: '3', fill: 'var(--accent2)' })));
   const labelEvery = Math.max(1, Math.ceil(n / 10));
   data.forEach((d, i) => {
     if (i % labelEvery !== 0 && i !== n - 1) return;
-    const label = make('text', {
-      x: xFor(i), y: H - 6, 'text-anchor': 'middle',
-      'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)'
-    });
+    const label = make('text', { x: xFor(i), y: H - 6, 'text-anchor': 'middle', 'font-size': '10', fill: 'var(--muted)', 'font-family': 'var(--font-mono)' });
     label.textContent = d.sec;
     svg.appendChild(label);
   });
 }
 
-
 function startTimer() {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateStats();
-    wpmHistory.push({
-      sec: timerDuration - timeLeft,
-      wpm: calcWpm(),
-      raw: calcRawWpm()
-    });
+    wpmHistory.push({ sec: timerDuration - timeLeft, wpm: calcWpm(), raw: calcRawWpm() });
     if (timeLeft <= 0) endTest();
   }, 1000);
 }
@@ -344,10 +239,7 @@ function endTest() {
   finished = true;
   inputField.blur();
 
-  const wpm = calcWpm();
-  const raw = calcRawWpm();
-  const acc = calcAccuracy();
-  const consistency = calcConsistency();
+  const wpm = calcWpm(), raw = calcRawWpm(), acc = calcAccuracy(), consistency = calcConsistency();
 
   finalWpm.textContent      = wpm;
   finalAccuracy.textContent = acc + '%';
@@ -361,23 +253,12 @@ function endTest() {
   resultsOverlay.classList.remove('hidden');
 }
 
-// ── Reset ──────────────────────────────────────────────────────────────────
 function resetTest() {
   clearInterval(timerInterval);
   timerInterval = null;
-  started      = false;
-  finished     = false;
-  timeLeft     = timerDuration;
-  currentWord  = 0;
-  correctWords = 0;
-  totalErrors  = 0;
-  totalTyped   = 0;
-  wpmHistory      = [];
-  correctChars    = 0;
-  incorrectChars  = 0;
-  extraChars      = 0;
-  missedChars     = 0;
-  totalCharsTyped = 0;
+  started = false; finished = false; timeLeft = timerDuration;
+  currentWord = 0; correctWords = 0; totalErrors = 0; totalTyped = 0;
+  wpmHistory = []; correctChars = 0; incorrectChars = 0; extraChars = 0; missedChars = 0; totalCharsTyped = 0;
 
   progressBar.style.transition = 'none';
   progressBar.style.width = '100%';
@@ -394,23 +275,59 @@ function resetTest() {
   resultsOverlay.classList.add('hidden');
 }
 
-// ── Input: typing letters (space no longer advances) ───────────────────────
+// ── Typing: render current word coloring (does NOT advance) ────────────────
 inputField.addEventListener('input', () => {
   if (finished) return;
-
   const typed = inputField.value;
-
   if (!started && typed.trim().length > 0) {
     started = true;
     inputHint.classList.add('hidden');
     startTimer();
   }
-
   renderCurrentWord(typed);
   updateStats();
 });
 
-// ── Advance word ONLY on Enter key ─────────────────────────────────────────
+// ── Advance word on Enter OR Space ──────────────────────────────────────────
+function advanceWord() {
+  if (finished) return;
+
+  const typed = inputField.value.trim();
+
+  if (!started && typed.length > 0) {
+    started = true;
+    inputHint.classList.add('hidden');
+    startTimer();
+  }
+
+  finalizeWord(typed);
+  currentWord++;
+
+  if (currentWord >= words.length) {
+    const more = pickWords(50);
+    words = words.concat(more);
+    more.forEach((w) => {
+      const wordDiv = document.createElement('div');
+      wordDiv.classList.add('word');
+      w.split('').forEach(ch => {
+        const span = document.createElement('span');
+        span.textContent = ch;
+        wordDiv.appendChild(span);
+      });
+      wordsDisplay.appendChild(wordDiv);
+      wordEls.push(wordDiv);
+    });
+  }
+
+  if (wordEls[currentWord]) {
+    wordEls[currentWord].classList.add('active');
+    scrollToActive();
+  }
+
+  inputField.value = '';
+  updateStats();
+}
+
 inputField.addEventListener('keydown', (e) => {
   if (e.key === 'Tab') {
     e.preventDefault();
@@ -418,49 +335,14 @@ inputField.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    if (finished) return;
-
-    const typed = inputField.value.trim();
-
-    if (!started && typed.length > 0) {
-      started = true;
-      inputHint.classList.add('hidden');
-      startTimer();
-    }
-
-    finalizeWord(typed.length === 0 ? '' : typed);
-
-    currentWord++;
-
-    if (currentWord >= words.length) {
-      const more = pickWords(50);
-      words = words.concat(more);
-      more.forEach((w) => {
-        const wordDiv = document.createElement('div');
-        wordDiv.classList.add('word');
-        w.split('').forEach(ch => {
-          const span = document.createElement('span');
-          span.textContent = ch;
-          wordDiv.appendChild(span);
-        });
-        wordsDisplay.appendChild(wordDiv);
-        wordEls.push(wordDiv);
-      });
-    }
-
-    if (wordEls[currentWord]) {
-      wordEls[currentWord].classList.add('active');
-      scrollToActive();
-    }
-
-    inputField.value = '';
-    updateStats();
+    // ignore a space/enter press before any letters are typed for this word
+    if (inputField.value.trim().length === 0) return;
+    advanceWord();
   }
 });
 
-// ── Focus handling ─────────────────────────────────────────────────────────
 function focusInput() {
   if (!finished) {
     inputField.focus();
@@ -487,7 +369,6 @@ inputField.addEventListener('focus', () => {
   typingContainer.classList.add('is-focused');
 });
 
-// ── Mode buttons (preset durations) ────────────────────────────────────────
 modeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     modeBtns.forEach(b => b.classList.remove('active'));
@@ -498,13 +379,11 @@ modeBtns.forEach(btn => {
   });
 });
 
-// ── Custom timer input ──────────────────────────────────────────────────────
 if (customTimeBtn) {
   customTimeBtn.addEventListener('click', () => {
     const val = parseInt(customTimeInput.value, 10);
     if (!val || val <= 0) return;
-    const clamped = Math.min(Math.max(val, 5), 3600);
-    timerDuration = clamped;
+    timerDuration = Math.min(Math.max(val, 5), 3600);
     modeBtns.forEach(b => b.classList.remove('active'));
     resetTest();
   });
@@ -519,7 +398,6 @@ if (customTimeInput) {
   });
 }
 
-// ── Difficulty buttons ──────────────────────────────────────────────────────
 diffBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     diffBtns.forEach(b => b.classList.remove('active'));
@@ -529,10 +407,8 @@ diffBtns.forEach(btn => {
   });
 });
 
-// ── Control buttons ────────────────────────────────────────────────────────
 resetBtn.addEventListener('click', resetTest);
 retryBtn.addEventListener('click', resetTest);
 
-// ── Init ───────────────────────────────────────────────────────────────────
 resetTest();
 inputField.focus();
