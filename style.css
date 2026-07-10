@@ -290,6 +290,12 @@ header {
   text-decoration: underline wavy var(--wrong);
 }
 
+.words-display .word span.extra {
+  color: var(--wrong);
+  text-decoration: underline solid var(--wrong);
+  opacity: 0.7;
+}
+
 .words-display .word.done-correct span { color: var(--correct); }
 
 .words-display .word.done-wrong span.correct { color: #ff8080; }
@@ -300,6 +306,17 @@ header {
   content: '';
   position: absolute;
   left: -3px;
+  top: 5%;
+  height: 90%;
+  width: 3px;
+  background: var(--accent2);
+  animation: blink-cursor 0.85s step-end infinite;
+}
+
+.words-display .word span.cursor-end::after {
+  content: '';
+  position: absolute;
+  right: -3px;
   top: 5%;
   height: 90%;
   width: 3px;
