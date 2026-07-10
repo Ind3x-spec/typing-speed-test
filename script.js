@@ -65,6 +65,7 @@ const finalConsistency = document.getElementById('finalConsistency');
 const finalTime       = document.getElementById('finalTime');
 const finalTestType   = document.getElementById('finalTestType');
 const modeBtns        = document.querySelectorAll('.mode-btn');
+const presetBtns      = document.querySelectorAll('.mode-btn[data-time]'); // excludes Set button — fixes double-handler bug
 const diffBtns        = document.querySelectorAll('.diff-btn');
 const typingContainer = document.getElementById('typingContainer');
 const customTimeInput = document.getElementById('customTimeInput');
@@ -73,6 +74,7 @@ const customTimeBtn   = document.getElementById('customTimeBtn');
 let words = [], wordEls = [], currentWord = 0, correctWords = 0, totalErrors = 0, totalTyped = 0;
 let timerDuration = 60, timeLeft = 60, timerInterval = null, started = false, finished = false;
 let wpmHistory = [], correctChars = 0, incorrectChars = 0, extraChars = 0, missedChars = 0, totalCharsTyped = 0;
+let typedHistory = []; // typed string per finalized word index — enables backspacing into previous word
 
 function pickWords(count) {
   const bank = DIFFICULTY_BANKS[currentDifficulty];
@@ -101,44 +103,105 @@ function buildDisplay() {
 function renderCurrentWord(typed) {
   const wordDiv = wordEls[currentWord];
   if (!wordDiv) return;
+
+  // clear extras from prior render; querying after gives just the target-length letter spans
+  wordDiv.querySelectorAll('span.extra').forEach(s => s.remove());
   const letters = wordDiv.querySelectorAll('span');
   const target  = words[currentWord];
+
   letters.forEach((span, i) => {
     span.className = '';
     if (i < typed.length) span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
   });
-  const cursorPos = Math.min(typed.length, letters.length - 1);
-  if (letters[cursorPos]) {
-    if (typed.length < letters.length) letters[typed.length].classList.add('cursor');
-    else letters[letters.length - 1].classList.add('cursor');
+
+  // live-render overtyped characters beyond word length
+  if (typed.length > target.length) {
+    typed.slice(target.length).split('').forEach(ch => {
+      const span = document.createElement('span');
+      span.textContent = ch;
+      span.classList.add('extra', 'wrong');
+      wordDiv.appendChild(span);
+    });
   }
+
+  // cursor sits before the next letter to type, or after the true end (incl. any overtyped chars)
+  if (typed.length < letters.length) {
+    letters[typed.length].classList.add('cursor');
+  } else {
+    const allSpans = wordDiv.querySelectorAll('span');
+    allSpans[allSpans.length - 1].classList.add('cursor-end');
+  }
+}
+
+// Pure stat delta for a typed/target pair — shared by finalize (add) and
+// unfinalize (subtract) so the two stay mathematically in sync.
+function computeWordDelta(typed, target) {
+  let correct = 0, incorrect = 0, missed = 0, extra = 0;
+  for (let i = 0; i < target.length; i++) {
+    if (i < typed.length) { if (typed[i] === target[i]) correct++; else incorrect++; }
+    else missed++;
+  }
+  if (typed.length > target.length) extra = typed.length - target.length;
+  return { correct, incorrect, missed, extra, wasCorrect: typed === target };
 }
 
 function finalizeWord(typed) {
   const wordDiv = wordEls[currentWord];
   const target  = words[currentWord];
+
+  wordDiv.querySelectorAll('span.extra').forEach(s => s.remove());
   const letters = wordDiv.querySelectorAll('span');
-  let wordOk = typed === target;
+
+  const delta = computeWordDelta(typed, target);
+  correctChars   += delta.correct;
+  incorrectChars += delta.incorrect;
+  missedChars    += delta.missed;
+  extraChars     += delta.extra;
 
   letters.forEach((span, i) => {
     span.className = '';
-    if (i < typed.length) {
-      const ok = typed[i] === target[i];
-      span.classList.add(ok ? 'correct' : 'wrong');
-      if (ok) correctChars++; else incorrectChars++;
-    } else {
-      span.classList.add('wrong');
-      missedChars++;
-    }
+    if (i < typed.length) span.classList.add(typed[i] === target[i] ? 'correct' : 'wrong');
+    else span.classList.add('wrong');
   });
 
-  if (typed.length > target.length) extraChars += (typed.length - target.length);
-  totalCharsTyped += typed.length + 1;
+  if (delta.extra > 0) {
+    typed.slice(target.length).split('').forEach(ch => {
+      const span = document.createElement('span');
+      span.textContent = ch;
+      span.classList.add('extra', 'wrong');
+      wordDiv.appendChild(span);
+    });
+  }
 
-  if (wordOk) { correctWords++; wordDiv.classList.add('done-correct'); }
+  totalCharsTyped += typed.length + 1;
+  typedHistory[currentWord] = typed;
+
+  if (delta.wasCorrect) { correctWords++; wordDiv.classList.add('done-correct'); }
   else { totalErrors++; wordDiv.classList.add('done-wrong'); }
 
   wordDiv.classList.remove('active');
+}
+
+// Reverses finalizeWord for the given index so the word can be retyped.
+// Returns the previously typed string, or null if that word was never finalized.
+function unfinalizeWord(index) {
+  const wordDiv = wordEls[index];
+  const target  = words[index];
+  const typed   = typedHistory[index];
+  if (typed === undefined) return null;
+
+  const delta = computeWordDelta(typed, target);
+  correctChars    -= delta.correct;
+  incorrectChars  -= delta.incorrect;
+  missedChars     -= delta.missed;
+  extraChars      -= delta.extra;
+  totalCharsTyped -= (typed.length + 1);
+
+  if (delta.wasCorrect) { correctWords--; wordDiv.classList.remove('done-correct'); }
+  else { totalErrors--; wordDiv.classList.remove('done-wrong'); }
+
+  typedHistory[index] = undefined;
+  return typed;
 }
 
 function scrollToActive() {
@@ -259,6 +322,7 @@ function resetTest() {
   started = false; finished = false; timeLeft = timerDuration;
   currentWord = 0; correctWords = 0; totalErrors = 0; totalTyped = 0;
   wpmHistory = []; correctChars = 0; incorrectChars = 0; extraChars = 0; missedChars = 0; totalCharsTyped = 0;
+  typedHistory = [];
 
   progressBar.style.transition = 'none';
   progressBar.style.width = '100%';
@@ -335,6 +399,22 @@ inputField.addEventListener('keydown', (e) => {
     return;
   }
 
+  if (e.key === 'Backspace' && inputField.value.length === 0 && currentWord > 0) {
+    e.preventDefault();
+    const prevIndex = currentWord - 1;
+    const prevTyped = unfinalizeWord(prevIndex);
+    if (prevTyped !== null) {
+      wordEls[currentWord].classList.remove('active');
+      currentWord = prevIndex;
+      wordEls[currentWord].classList.add('active');
+      inputField.value = prevTyped;
+      renderCurrentWord(prevTyped);
+      updateStats();
+      scrollToActive();
+    }
+    return;
+  }
+
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
     // ignore a space/enter press before any letters are typed for this word
@@ -372,7 +452,7 @@ inputField.addEventListener('focus', () => {
   typingContainer.classList.add('is-focused');
 });
 
-modeBtns.forEach(btn => {
+presetBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     modeBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -388,6 +468,8 @@ if (customTimeBtn) {
     if (!val || val <= 0) return;
     timerDuration = Math.min(Math.max(val, 5), 3600);
     modeBtns.forEach(b => b.classList.remove('active'));
+    customTimeBtn.classList.add('active');
+    customTimeInput.value = timerDuration;
     resetTest();
   });
 }
