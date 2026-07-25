@@ -72,6 +72,7 @@ const customTimeInput = document.getElementById('customTimeInput');
 const customTimeBtn   = document.getElementById('customTimeBtn');
 
 let words = [], wordEls = [], currentWord = 0, correctWords = 0, totalErrors = 0, totalTyped = 0;
+let lastTypedLen = 0; // length of inputField.value as of the last processed keystroke — detects forward vs. deleting
 let timerDuration = 60, timeLeft = 60, timerInterval = null, started = false, finished = false;
 let wpmHistory = [], correctChars = 0, incorrectChars = 0, extraChars = 0, missedChars = 0, totalCharsTyped = 0;
 let typedHistory = []; // typed string per finalized word index — enables backspacing into previous word
@@ -131,6 +132,8 @@ function renderCurrentWord(typed) {
     const allSpans = wordDiv.querySelectorAll('span');
     allSpans[allSpans.length - 1].classList.add('cursor-end');
   }
+
+  fgUpdateNext(typed);
 }
 
 // Pure stat delta for a typed/target pair — shared by finalize (add) and
@@ -334,9 +337,11 @@ function resetTest() {
   timerEl.textContent = timeLeft;
 
   inputField.value = '';
+  lastTypedLen = 0;
   inputField.disabled = false;
   inputHint.classList.remove('hidden');
   resultsOverlay.classList.add('hidden');
+  fgUpdateNext('');
 }
 
 // ── Typing: render current word coloring (does NOT advance) ────────────────
@@ -348,6 +353,10 @@ inputField.addEventListener('input', () => {
     inputHint.classList.add('hidden');
     startTimer();
   }
+  if (typed.length > lastTypedLen) {
+    fgFlashPress(typed[typed.length - 1].toLowerCase());
+  }
+  lastTypedLen = typed.length;
   renderCurrentWord(typed);
   updateStats();
 });
@@ -365,6 +374,7 @@ function advanceWord() {
   }
 
   finalizeWord(typed);
+  fgFlashPress(' ');
   currentWord++;
 
   if (currentWord >= words.length) {
@@ -389,6 +399,8 @@ function advanceWord() {
   }
 
   inputField.value = '';
+  lastTypedLen = 0;
+  fgUpdateNext('');
   updateStats();
 }
 
@@ -408,6 +420,7 @@ inputField.addEventListener('keydown', (e) => {
       currentWord = prevIndex;
       wordEls[currentWord].classList.add('active');
       inputField.value = prevTyped;
+      lastTypedLen = prevTyped.length;
       renderCurrentWord(prevTyped);
       updateStats();
       scrollToActive();
@@ -494,6 +507,160 @@ diffBtns.forEach(btn => {
 
 resetBtn.addEventListener('click', resetTest);
 retryBtn.addEventListener('click', resetTest);
+
+// ---------- FINGER GUIDE PANEL ----------
+const FINGER_GUIDE = [
+  { id: 'L-pinky',  hand: 'left',   label: 'pinky',  color: 'var(--f-lp)' },
+  { id: 'L-ring',   hand: 'left',   label: 'ring',   color: 'var(--f-lr)' },
+  { id: 'L-middle', hand: 'left',   label: 'middle', color: 'var(--f-lm)' },
+  { id: 'L-index',  hand: 'left',   label: 'index',  color: 'var(--f-li)' },
+  { id: 'thumb',    hand: 'thumbs', label: 'thumbs', color: 'var(--f-th)' },
+  { id: 'R-index',  hand: 'right',  label: 'index',  color: 'var(--f-ri)' },
+  { id: 'R-middle', hand: 'right',  label: 'middle', color: 'var(--f-rm)' },
+  { id: 'R-ring',   hand: 'right',  label: 'ring',   color: 'var(--f-rr)' },
+  { id: 'R-pinky',  hand: 'right',  label: 'pinky',  color: 'var(--f-rp)' },
+];
+
+const FINGER_GUIDE_ROWS = [
+  [ {l:'`',f:'L-pinky'},{l:'1',f:'L-pinky'},{l:'2',f:'L-ring'},{l:'3',f:'L-middle'},
+    {l:'4',f:'L-index'},{l:'5',f:'L-index'},{l:'6',f:'R-index'},{l:'7',f:'R-index'},
+    {l:'8',f:'R-middle'},{l:'9',f:'R-ring'},{l:'0',f:'R-pinky'},{l:'-',f:'R-pinky'},
+    {l:'=',f:'R-pinky'},{l:'⌫',f:'R-pinky',w:1.7} ],
+
+  [ {l:'Tab',f:'L-pinky',w:1.5},{l:'Q',f:'L-pinky'},{l:'W',f:'L-ring'},{l:'E',f:'L-middle'},
+    {l:'R',f:'L-index'},{l:'T',f:'L-index'},{l:'Y',f:'R-index'},{l:'U',f:'R-index'},
+    {l:'I',f:'R-middle'},{l:'O',f:'R-ring'},{l:'P',f:'R-pinky'},{l:'[',f:'R-pinky'},
+    {l:']',f:'R-pinky'},{l:'\\',f:'R-pinky',w:1.3} ],
+
+  [ {l:'Caps',f:'L-pinky',w:1.75},{l:'A',f:'L-pinky'},{l:'S',f:'L-ring'},{l:'D',f:'L-middle'},
+    {l:'F',f:'L-index',bump:true},{l:'G',f:'L-index'},{l:'H',f:'R-index'},{l:'J',f:'R-index',bump:true},
+    {l:'K',f:'R-middle'},{l:'L',f:'R-ring'},{l:';',f:'R-pinky'},{l:"'",f:'R-pinky'},
+    {l:'Enter',f:'R-pinky',w:2.1} ],
+
+  [ {l:'Shift',f:'L-pinky',w:2.2},{l:'Z',f:'L-pinky'},{l:'X',f:'L-ring'},{l:'C',f:'L-middle'},
+    {l:'V',f:'L-index'},{l:'B',f:'L-index'},{l:'N',f:'R-index'},{l:'M',f:'R-index'},
+    {l:',',f:'R-middle'},{l:'.',f:'R-ring'},{l:'/',f:'R-pinky'},{l:'Shift',f:'R-pinky',w:2.6} ],
+];
+
+let CHAR_KEY_MAP = {};   // 'a' -> { el, finger } — built once the board exists
+let liveNextChar = ' ';  // what the live tracker currently thinks is "next"
+
+function initFingerGuide() {
+  const board = document.getElementById('fgBoard');
+  const hands = document.getElementById('fgHands');
+  if (!board || !hands) return;
+
+  const FG_KEY_UNIT = 38;
+  const colorFor = id => FINGER_GUIDE.find(f => f.id === id).color;
+
+  FINGER_GUIDE_ROWS.forEach(rowData => {
+    const row = document.createElement('div');
+    row.className = 'fg-row';
+    rowData.forEach(k => {
+      const key = document.createElement('div');
+      key.className = 'fg-key';
+      key.dataset.finger = k.f;
+      key.style.setProperty('--c', colorFor(k.f));
+      key.style.width = (FG_KEY_UNIT * (k.w || 1)) + 'px';
+      key.textContent = k.l;
+      if (k.bump) {
+        const bump = document.createElement('span');
+        bump.className = 'fg-bump';
+        key.appendChild(bump);
+      }
+      row.appendChild(key);
+      if (k.l.length === 1) CHAR_KEY_MAP[k.l.toLowerCase()] = { el: key, finger: k.f };
+    });
+    board.appendChild(row);
+  });
+
+  const spaceRow = document.createElement('div');
+  spaceRow.className = 'fg-row';
+  const spaceKey = document.createElement('div');
+  spaceKey.className = 'fg-key fg-space';
+  spaceKey.dataset.finger = 'thumb';
+  spaceKey.style.setProperty('--c', colorFor('thumb'));
+  spaceKey.textContent = 'space';
+  spaceRow.appendChild(spaceKey);
+  board.appendChild(spaceRow);
+  CHAR_KEY_MAP[' '] = { el: spaceKey, finger: 'thumb' };
+
+  ['left', 'thumbs', 'right'].forEach(handId => {
+    const container = hands.querySelector(`[data-hand="${handId}"]`);
+    FINGER_GUIDE.filter(f => f.hand === handId).forEach(f => {
+      const chip = document.createElement('div');
+      chip.className = 'fg-chip';
+      chip.dataset.finger = f.id;
+      chip.style.setProperty('--c', f.color);
+      chip.innerHTML = `<span class="fg-dot"></span>${f.label}`;
+      container.appendChild(chip);
+    });
+  });
+
+  // ---- hover = temporary "explore this finger's whole territory" view ----
+  function fgExploreHighlight(fingerId) {
+    document.querySelectorAll('.fg-key, .fg-chip').forEach(el => {
+      el.classList.remove('fg-next'); // suspend the live glow while exploring
+      if (el.dataset.finger === fingerId) {
+        el.classList.add('fg-active');
+        el.classList.remove('fg-dimmed');
+      } else {
+        el.classList.remove('fg-active');
+        el.classList.add('fg-dimmed');
+      }
+    });
+  }
+  function fgExploreClear() {
+    document.querySelectorAll('.fg-key, .fg-chip').forEach(el => el.classList.remove('fg-active', 'fg-dimmed'));
+  }
+
+  document.querySelectorAll('.fg-key, .fg-chip').forEach(el => {
+    el.addEventListener('mouseenter', () => fgExploreHighlight(el.dataset.finger));
+    el.addEventListener('mouseleave', () => { fgExploreClear(); fgShowNext(liveNextChar); });
+  });
+
+  fgShowNext(' '); // initial state before anything else runs
+}
+
+// ---- live tracking: the actual "keystroke animation" ----
+function fgShowNext(char) {
+  document.querySelectorAll('.fg-next').forEach(el => el.classList.remove('fg-next'));
+  document.querySelectorAll('.fg-chip.fg-active').forEach(el => el.classList.remove('fg-active'));
+  liveNextChar = char;
+  const info = CHAR_KEY_MAP[char];
+  if (!info) return;
+  info.el.classList.add('fg-next');
+  const chip = document.querySelector(`.fg-chip[data-finger="${info.finger}"]`);
+  if (chip) chip.classList.add('fg-active');
+}
+
+function fgUpdateNext(typed) {
+  if (Object.keys(CHAR_KEY_MAP).length === 0) return;
+  const word = words[currentWord] || '';
+  const nextChar = typed.length < word.length ? word[typed.length] : ' ';
+  fgShowNext(nextChar.toLowerCase());
+}
+
+function fgFlashPress(char) {
+  const info = CHAR_KEY_MAP[char];
+  if (!info) return;
+  const el = info.el;
+  el.classList.remove('fg-pressed');
+  void el.offsetWidth; // reflow, so back-to-back presses of the same key re-trigger the animation
+  el.classList.add('fg-pressed');
+  setTimeout(() => el.classList.remove('fg-pressed'), 200);
+}
+
+initFingerGuide();
+
+const fingerGuideBtn   = document.getElementById('fingerGuideBtn');
+const fingerGuidePanel = document.getElementById('fingerGuidePanel');
+if (fingerGuideBtn && fingerGuidePanel) {
+  fingerGuideBtn.addEventListener('click', () => {
+    fingerGuidePanel.classList.toggle('hidden');
+    fingerGuideBtn.classList.toggle('active');
+  });
+}
 
 resetTest();
 inputField.focus();
