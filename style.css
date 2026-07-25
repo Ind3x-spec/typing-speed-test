@@ -574,7 +574,26 @@ kbd {
 
 .fg-key.fg-space { flex: 1 1 auto; min-width: 200px; }
 
+.fg-key.fg-next {
+  background: var(--c);
+  color: var(--ink-on-bright);
+  animation: fg-glow 1.1s ease-in-out infinite;
+}
+
+@keyframes fg-glow {
+  0%, 100% { box-shadow: 3px 3px 0 var(--border), 0 0 0 0 transparent; }
+  50%      { box-shadow: 3px 3px 0 var(--border), 0 0 12px 3px var(--c); }
+}
+
+.fg-key.fg-pressed { animation: fg-press 0.2s ease-out; }
+
+@keyframes fg-press {
+  0%   { transform: translate(1px, 1px) scale(0.9); background: var(--c); color: var(--ink-on-bright); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .fg-key.fg-next, .fg-key.fg-pressed { animation: none; background: var(--c); color: var(--ink-on-bright); }
   .fg-key, .fg-chip { transition: none; }
 }
 
