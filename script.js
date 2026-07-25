@@ -72,6 +72,7 @@ const customTimeInput = document.getElementById('customTimeInput');
 const customTimeBtn   = document.getElementById('customTimeBtn');
 
 let words = [], wordEls = [], currentWord = 0, correctWords = 0, totalErrors = 0, totalTyped = 0;
+let lastTypedLen = 0; // length of inputField.value as of the last processed keystroke — detects forward vs. deleting
 let timerDuration = 60, timeLeft = 60, timerInterval = null, started = false, finished = false;
 let wpmHistory = [], correctChars = 0, incorrectChars = 0, extraChars = 0, missedChars = 0, totalCharsTyped = 0;
 let typedHistory = []; // typed string per finalized word index — enables backspacing into previous word
@@ -131,6 +132,8 @@ function renderCurrentWord(typed) {
     const allSpans = wordDiv.querySelectorAll('span');
     allSpans[allSpans.length - 1].classList.add('cursor-end');
   }
+
+  fgUpdateNext(typed);
 }
 
 // Pure stat delta for a typed/target pair — shared by finalize (add) and
@@ -334,9 +337,11 @@ function resetTest() {
   timerEl.textContent = timeLeft;
 
   inputField.value = '';
+  lastTypedLen = 0;
   inputField.disabled = false;
   inputHint.classList.remove('hidden');
   resultsOverlay.classList.add('hidden');
+  fgUpdateNext('');
 }
 
 // ── Typing: render current word coloring (does NOT advance) ────────────────
@@ -348,6 +353,10 @@ inputField.addEventListener('input', () => {
     inputHint.classList.add('hidden');
     startTimer();
   }
+  if (typed.length > lastTypedLen) {
+    fgFlashPress(typed[typed.length - 1].toLowerCase());
+  }
+  lastTypedLen = typed.length;
   renderCurrentWord(typed);
   updateStats();
 });
@@ -365,6 +374,7 @@ function advanceWord() {
   }
 
   finalizeWord(typed);
+  fgFlashPress(' ');
   currentWord++;
 
   if (currentWord >= words.length) {
@@ -389,6 +399,8 @@ function advanceWord() {
   }
 
   inputField.value = '';
+  lastTypedLen = 0;
+  fgUpdateNext('');
   updateStats();
 }
 
@@ -408,6 +420,7 @@ inputField.addEventListener('keydown', (e) => {
       currentWord = prevIndex;
       wordEls[currentWord].classList.add('active');
       inputField.value = prevTyped;
+      lastTypedLen = prevTyped.length;
       renderCurrentWord(prevTyped);
       updateStats();
       scrollToActive();
@@ -529,6 +542,9 @@ const FINGER_GUIDE_ROWS = [
     {l:',',f:'R-middle'},{l:'.',f:'R-ring'},{l:'/',f:'R-pinky'},{l:'Shift',f:'R-pinky',w:2.6} ],
 ];
 
+let CHAR_KEY_MAP = {};   // 'a' -> { el, finger } — built once the board exists
+let liveNextChar = ' ';  // what the live tracker currently thinks is "next"
+
 function initFingerGuide() {
   const board = document.getElementById('fgBoard');
   const hands = document.getElementById('fgHands');
@@ -553,6 +569,7 @@ function initFingerGuide() {
         key.appendChild(bump);
       }
       row.appendChild(key);
+      if (k.l.length === 1) CHAR_KEY_MAP[k.l.toLowerCase()] = { el: key, finger: k.f };
     });
     board.appendChild(row);
   });
@@ -566,6 +583,7 @@ function initFingerGuide() {
   spaceKey.textContent = 'space';
   spaceRow.appendChild(spaceKey);
   board.appendChild(spaceRow);
+  CHAR_KEY_MAP[' '] = { el: spaceKey, finger: 'thumb' };
 
   ['left', 'thumbs', 'right'].forEach(handId => {
     const container = hands.querySelector(`[data-hand="${handId}"]`);
@@ -579,11 +597,10 @@ function initFingerGuide() {
     });
   });
 
-  const targets = () => document.querySelectorAll('.fg-key, .fg-chip');
-  let fgLocked = null;
-
-  function fgHighlight(fingerId) {
-    targets().forEach(el => {
+  // ---- hover = temporary "explore this finger's whole territory" view ----
+  function fgExploreHighlight(fingerId) {
+    document.querySelectorAll('.fg-key, .fg-chip').forEach(el => {
+      el.classList.remove('fg-next'); // suspend the live glow while exploring
       if (el.dataset.finger === fingerId) {
         el.classList.add('fg-active');
         el.classList.remove('fg-dimmed');
@@ -593,18 +610,45 @@ function initFingerGuide() {
       }
     });
   }
-  function fgClear() {
-    targets().forEach(el => el.classList.remove('fg-active', 'fg-dimmed'));
+  function fgExploreClear() {
+    document.querySelectorAll('.fg-key, .fg-chip').forEach(el => el.classList.remove('fg-active', 'fg-dimmed'));
   }
 
-  targets().forEach(el => {
-    el.addEventListener('mouseenter', () => { if (!fgLocked) fgHighlight(el.dataset.finger); });
-    el.addEventListener('mouseleave', () => { if (!fgLocked) fgClear(); });
-    el.addEventListener('click', () => {
-      if (fgLocked === el.dataset.finger) { fgLocked = null; fgClear(); }
-      else { fgLocked = el.dataset.finger; fgHighlight(fgLocked); }
-    });
+  document.querySelectorAll('.fg-key, .fg-chip').forEach(el => {
+    el.addEventListener('mouseenter', () => fgExploreHighlight(el.dataset.finger));
+    el.addEventListener('mouseleave', () => { fgExploreClear(); fgShowNext(liveNextChar); });
   });
+
+  fgShowNext(' '); // initial state before anything else runs
+}
+
+// ---- live tracking: the actual "keystroke animation" ----
+function fgShowNext(char) {
+  document.querySelectorAll('.fg-next').forEach(el => el.classList.remove('fg-next'));
+  document.querySelectorAll('.fg-chip.fg-active').forEach(el => el.classList.remove('fg-active'));
+  liveNextChar = char;
+  const info = CHAR_KEY_MAP[char];
+  if (!info) return;
+  info.el.classList.add('fg-next');
+  const chip = document.querySelector(`.fg-chip[data-finger="${info.finger}"]`);
+  if (chip) chip.classList.add('fg-active');
+}
+
+function fgUpdateNext(typed) {
+  if (Object.keys(CHAR_KEY_MAP).length === 0) return;
+  const word = words[currentWord] || '';
+  const nextChar = typed.length < word.length ? word[typed.length] : ' ';
+  fgShowNext(nextChar.toLowerCase());
+}
+
+function fgFlashPress(char) {
+  const info = CHAR_KEY_MAP[char];
+  if (!info) return;
+  const el = info.el;
+  el.classList.remove('fg-pressed');
+  void el.offsetWidth; // reflow, so back-to-back presses of the same key re-trigger the animation
+  el.classList.add('fg-pressed');
+  setTimeout(() => el.classList.remove('fg-pressed'), 200);
 }
 
 initFingerGuide();
